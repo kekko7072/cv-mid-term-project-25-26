@@ -1,0 +1,20 @@
+# Build outputs
+build/
+out/
+cmake-build-*/
+
+# Downloaded dataset contents
+data/raw/*
+data/labels/*
+!data/raw/.gitkeep
+!data/labels/.gitkeep
+
+# Generated project outputs
+output/predictions/*
+output/overlays/*
+output/metrics/*
+!output/predictions/.gitkeep
+!output/overlays/.gitkeep
+!output/metrics/.gitkeep
+
+macos_compile.sh
