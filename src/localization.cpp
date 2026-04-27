@@ -1,3 +1,5 @@
+// Nordin Mohamed Mohamed Shafiq Elbastwisi
+
 #include "localization.h"
 
 #include <algorithm>
