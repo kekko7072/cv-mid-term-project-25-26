@@ -1,3 +1,7 @@
+// ALBERTO SALESE
+
+#include "motion_extraction.h"
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>
 #include <iostream>
@@ -70,6 +74,8 @@ vector<DMatch> matchFeatures(Mat& d1, Mat& d2)
 //calcolo movimento
 void processSequence(const string& folder, const string& outFolder)
 {
+    (void)outFolder;
+
     vector<Mat> frames, gray;
 
     //carico sequenza immagini
@@ -129,21 +135,86 @@ void processSequence(const string& folder, const string& outFolder)
 
 }
 
-int main(int argc, char** argv)
+namespace midterm {
+
+MotionExtractor::MotionExtractor(MotionConfig config) : config_(config) {}
+
+MotionAnalysis MotionExtractor::extractMotionEvidence(const vector<Mat>& frames,
+                                                      string* debug_note) const
 {
-    if (argc < 3)
+    MotionAnalysis result;
+
+    if (debug_note) *debug_note = "";
+
+    if (frames.size() < 2)
     {
-        //cout << "Usage: ./motion <input_folder> <output_folder>" << endl;
-        return -1;
+        if (debug_note) *debug_note = "not_enough_frames";
+        return result;
     }
 
-    string inputFolder = argv[1];   //sequenza immagini
-    string outputFolder = argv[2];  //dove salvo risultati
+    vector<Mat> gray;
 
-    //creo cartella output se non esiste
-    fs::create_directories(outputFolder);
+    for (auto& frame : frames)
+    {
+        if (frame.empty()) continue;
 
-    processSequence(inputFolder, outputFolder);
+        Mat g;
+        if (frame.channels() == 1) g = frame.clone();
+        else cvtColor(frame, g, COLOR_BGR2GRAY);
+        gray.push_back(g);
+    }
 
-    return 0;
+    if (gray.size() < 2)
+    {
+        if (debug_note) *debug_note = "not_enough_frames";
+        return result;
+    }
+
+    vector<KeyPoint> kp1, kp2;
+    Mat des1, des2;
+
+    siftFeatures(gray[0], kp1, des1);
+
+    for (size_t i = 1; i < gray.size(); i++)
+    {
+        siftFeatures(gray[i], kp2, des2);
+
+        if (des1.empty() || des2.empty())
+        {
+            continue;
+        }
+
+        vector<DMatch> matches = matchFeatures(des1, des2);
+
+        for (auto& m : matches)
+        {
+            Point2f p1 = kp1[m.queryIdx].pt;
+            Point2f p2 = kp2[m.trainIdx].pt;
+            float dist = norm(p2 - p1);
+
+            TrackEvidence track;
+            track.first_point = p1;
+            track.last_point = p2;
+            track.observed_steps = 1;
+            track.accumulated_flow = dist;
+            result.observed_tracks.push_back(track);
+
+            if (dist > config_.min_flow_magnitude)
+            {
+                track.foreground_steps = 1;
+                result.moving_tracks.push_back(track);
+            }
+        }
+    }
+
+    if (debug_note)
+    {
+        if (result.observed_tracks.empty()) *debug_note = "no_valid_tracks";
+        else if (result.moving_tracks.empty()) *debug_note = "no_moving_tracks";
+        else *debug_note = "simple_sift_matching";
+    }
+
+    return result;
 }
+
+}  // namespace midterm

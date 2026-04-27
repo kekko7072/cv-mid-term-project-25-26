@@ -1,0 +1,39 @@
+Member 3 - App and integration
+
+Implemented in src/app.cpp:
+
+- simple application entry flow
+- usage: ./build/main <input_folder> <output_folder>
+- check that the input folder contains enough images
+- load the image sequence from the input folder
+- call the motion extraction part on the loaded frames
+- create the output folder automatically
+- save all observed tracks in all_tracks.csv
+- save moving tracks in moving_tracks.csv
+- save one debug image with tracked points in debug.png
+- save a TODO file for the next steps
+
+What this part does:
+
+The app is the simple runner of the project. It takes one sequence folder as input,
+loads the frames, runs motion extraction, and writes the basic output files needed
+for the pipeline.
+
+Output files:
+
+- all_tracks.csv
+- moving_tracks.csv
+- debug.png
+- TODO_localization_evaluation.txt
+
+What is still TODO:
+
+- localization is not implemented yet
+- evaluation is not implemented yet
+- bounding box generation is not implemented yet
+
+Notes:
+
+The code was kept intentionally simple. The goal was to have a small working app
+that connects the input sequence to the motion extraction output without adding
+extra complexity.

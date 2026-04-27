@@ -10,11 +10,7 @@ data/labels/*
 !data/labels/.gitkeep
 
 # Generated project outputs
-output/predictions/*
-output/overlays/*
-output/metrics/*
-!output/predictions/.gitkeep
-!output/overlays/.gitkeep
-!output/metrics/.gitkeep
+output/
+
 
 macos_compile.sh

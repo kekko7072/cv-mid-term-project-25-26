@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <opencv2/opencv.hpp>
+// Francesco Vezzani
+
 #include "app.h"
 
 int main(int argc, char** argv) {
-    return 0;
+    return midterm::runApplication(argc, argv);
 }

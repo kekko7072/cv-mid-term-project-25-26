@@ -8,12 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(OpenCV REQUIRED)
 
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
-    src/*.cpp
-)
-
 add_executable(${PROJECT_NAME}
-    ${PROJECT_SOURCES}
+    src/main.cpp
+    src/app.cpp
+    src/localization.cpp
+    src/evaluation.cpp
+    src/motion_extraction.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -29,4 +29,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
     -Wextra
     -Wpedantic
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    MOTION_EXTRACTION_APP_BUILD
 )
