@@ -1,0 +1,2 @@
+[diff "pandoc"]
+  textconv = pandoc --to=markdown
