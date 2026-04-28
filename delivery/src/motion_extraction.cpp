@@ -14,28 +14,28 @@ using namespace cv;
 using namespace std;
 namespace fs = std::filesystem;
 
-//soglia punto si muove o no
+//threshold to determine whether a point is moving or not
 const float MOTION_THRESHOLD = 2.0;
 
 
-//carico sequenza immagini
+//upload sequence of images
 void loadImages(const string& folder, vector<Mat>& frames, vector<Mat>& gray)
 {
     vector<string> files;
 
-    //prendo tutti i file dentro la cartella
+    //take all the files in the directory
     for (auto& entry : fs::directory_iterator(folder))
         files.push_back(entry.path().string());
     for (auto& f : files)
     {
-        Mat img = imread(f); //leggo immagine
+        Mat img = imread(f); //read image
 
         if (img.empty()) continue;
 
-        frames.push_back(img); //salvo immagine originale
+        frames.push_back(img); //save original image
 
         Mat g;
-        cvtColor(img, g, COLOR_BGR2GRAY); //converto in grayscale
+        cvtColor(img, g, COLOR_BGR2GRAY); //convert to grayscale
         gray.push_back(g);
     }
 }
@@ -44,7 +44,7 @@ void loadImages(const string& folder, vector<Mat>& frames, vector<Mat>& gray)
 void siftFeatures(Mat& img, vector<KeyPoint>& kp, Mat& des)
 {
     Ptr<SIFT> sift = SIFT::create(); //creo oggetto SIFT
-    sift->detectAndCompute(img, noArray(), kp, des); //detectAndCompute: trova keypoints e calcola descrittori
+    sift->detectAndCompute(img, noArray(), kp, des); //detectAndCompute: finds keypoints and calculate descriptors
 }
 
 //matching
@@ -55,63 +55,62 @@ vector<DMatch> matchFeatures(Mat& d1, Mat& d2)
 
     vector<vector<DMatch>> knn;
 
-    //per ogni punto trova i 2 match migliori
+    //for each point finds the two better matches
     matcher.knnMatch(d1, d2, knn, 2);
 
     vector<DMatch> good;
 
     for (auto& m : knn)
     {
-        //controllo che ci siano almeno 2 match
+        //check there are at least 2 matches
         if (m.size() < 2) continue;
-        //tengo solo match buoni
+        //keep only good matches
         if (m[0].distance < 0.75 * m[1].distance)
             good.push_back(m[0]);
     }
     return good;
 }
 
-//calcolo movimento
+//movement calculation
 void processSequence(const string& folder, const string& outFolder)
 {
     (void)outFolder;
 
     vector<Mat> frames, gray;
 
-    //carico sequenza immagini
+    //upload images sequence
     loadImages(folder, frames, gray);
 
-    vector<Point2f> allPoints;   //tutti i punti
-    vector<float> allMotion;     //movimento di ogni punto
+    vector<Point2f> allPoints;   
+    vector<float> allMotion;     //movement of every point
 
     vector<KeyPoint> kp1, kp2;
     Mat des1, des2;
 
-    //estraggo feature dal primo frame
+    //extract feature from first frame
     siftFeatures(gray[0], kp1, des1);
 
-    //ciclo su tutti i frame successivi
+    //cycle to all next frames
     for (size_t i = 1; i < gray.size(); i++)
     {
-        //estraggo feature del frame corrente
+        //extract feature of current frame
         siftFeatures(gray[i], kp2, des2);
 
-        //se non ho descrittori salto
         if (des1.empty() || des2.empty())
             continue;
 
-        //faccio matching tra frame precedente e corrente
+        //matching between previous and next frame
         vector<DMatch> matches = matchFeatures(des1, des2);
 
         for (auto& m : matches)
         {
-            //punto nel frame precedente
+            //point to previous frame
             Point2f p1 = kp1[m.queryIdx].pt;
 
-            //punto nel frame corrente
+            //point to current frame
             Point2f p2 = kp2[m.trainIdx].pt;
 
-            //distanza
+            //distance
             float dist = norm(p2 - p1);
 
             allPoints.push_back(p1);
@@ -124,11 +123,11 @@ void processSequence(const string& folder, const string& outFolder)
     vector<Point2f> moving;
     vector<Point2f> staticPts;
 
-    //separo punti in movimento e statici
+    //sparation between moving and static points
     for (int i = 0; i < allPoints.size(); i++)
     {
         if (allMotion[i] > MOTION_THRESHOLD)
-            moving.push_back(allPoints[i]);   //oggetto in movimento
+            moving.push_back(allPoints[i]); 
         else
             staticPts.push_back(allPoints[i]); 
     }
