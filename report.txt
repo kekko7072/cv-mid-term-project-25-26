@@ -1,0 +1,43 @@
+MID-COURSE PROJECT
+GROUP: RAI
+
+AUTHORS
+- Alberto Salese
+- Nordin Mohamed Mohamed Shafiq Elbastwisi
+- Francesco Vezzani
+
+PROJECT OVERVIEW
+The goal of the project is to detect the dynamic object present in an image sequence and localize it in the first frame with a 2D bounding box. The solution is entirely developed in C++ with OpenCV and is organized into four stages: motion extraction, localization, evaluation, and application-level integration.
+
+APPROACH
+Motion extraction is implemented with sparse local features. Each sequence is loaded frame by frame and converted to grayscale. SIFT keypoints and descriptors are extracted from consecutive frames and matched with a brute-force matcher using Euclidean distance. Lowe's ratio test rejects ambiguous correspondences. For every accepted match, the feature displacement between two frames is measured. Tracks whose displacement is above a fixed threshold are treated as motion evidence for the foreground object, while the others are treated as background or negligible motion.
+
+The localization stage converts the detected motion evidence into a bounding box in the first frame. The first point of every accepted track is projected back to the reference frame and filtered with a simple 3-sigma outlier rejection on x and y coordinates. This reduces the effect of isolated noisy matches that would otherwise enlarge the predicted region. The remaining points are summarized through their minimum and maximum coordinates, producing a single axis-aligned bounding box clamped to the image boundaries.
+
+Evaluation is carried out with Intersection over Union (IoU). For each sequence, the predicted box is compared with the provided annotation for the first frame. The implementation stores per-sequence results in CSV format and computes a category summary with mean, median, standard deviation, minimum, and maximum IoU. A sequence is counted as a true positive when IoU is greater than 0.5, and detection accuracy is computed as the ratio between true positives and evaluated sequences.
+
+APPLICATION AND INTEGRATION (SRC/APP.CPP)
+The application and integration logic is implemented in src/app.cpp. This module connects the other parts into a runnable pipeline. It supports the repository default dataset run, a single-sequence mode with input and output folders, and a dataset mode with explicit raw, label, and output paths. Image files are automatically collected from disk, filtered by extension, and sorted so that frames are processed in temporal order.
+
+Once a sequence is loaded, app.cpp invokes the motion extractor and gathers the points used for localization. The code first prefers the moving tracks returned by motion extraction; if too few moving points are available, it falls back to all observed tracks so that a box can still be generated. After outlier rejection and box generation, the application saves the predicted bounding box to 0000.txt, the selected points to moving_points.txt, and a debug image with the predicted rectangle over the first frame to 0000.png. When labels are available, the same module appends the evaluation result to the dataset CSV file, builds category-level summaries, and writes the final dataset statistics to output/metrics/summary.txt. In practice, src/app.cpp is the orchestration layer that turns the individual modules into the complete end-to-end system requested by the brief.
+
+RESULTS
+The dataset available in the repository contains one evaluation sequence for each of the five categories considered in the assignment: bird, car, frog, sheep, and squirrel. The current implementation processes all five sequences successfully. The measured category IoUs are:
+
+- bird: 0.330773
+- car: 0.007549
+- frog: 0.235258
+- sheep: 0.156602
+- squirrel: 0.088658
+
+The mean IoU across categories is 0.163768. Detection accuracy is 0.0 because none of the predicted boxes exceeds the 0.5 IoU threshold required to be counted as a true positive. Bird achieves the best overlap, while car is the worst case. Frog is the most visually compact prediction, but its box is still shifted and oversized with respect to the annotation.
+
+ROBUSTNESS ANALYSIS
+The results show that the current pipeline works as a simple baseline but is not yet robust enough for reliable localization. The main weakness is that feature displacement alone is not sufficient to isolate the object from the background in scenes with camera motion, strong perspective effects, clutter, or distributed local motion. In the bird, car, and sheep sequences, many matched points belong to the scene rather than to the target object, so the final bounding box expands to a large portion of the frame.
+
+The frog sequence highlights a more favorable case: the moving object occupies a compact region and the estimated box stays closer to the target. Even in this case, however, the lack of temporal track consistency and geometric verification causes extra points to survive. The squirrel result also shows that sparse matches on branches and textured background areas can dominate the selected point set when the object is small.
+
+Overall, the implemented system is sensitive to background structure, viewpoint changes, and feature matches that are not constrained by a global motion model. Possible improvements would include multi-frame feature tracking, explicit compensation for dominant camera motion, stronger outlier rejection such as RANSAC, and a tighter criterion for selecting foreground points before box generation.
+
+CONCLUSION
+The project delivers a complete C++ and OpenCV pipeline that reads an input sequence, extracts motion evidence from sparse local features, estimates a first-frame bounding box, and evaluates the result with IoU-based metrics. The integration logic in src/app.cpp completes the full workflow by handling execution modes, data loading, output generation, and dataset-level summarization. The current quantitative results are modest, but they are coherent with the produced output images and provide a clear baseline for future refinements.
